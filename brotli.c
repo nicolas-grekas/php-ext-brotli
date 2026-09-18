@@ -1049,8 +1049,11 @@ static int php_brotli_compress_close(php_stream *stream,
                                         &next_out,
                                         0)) {
             size_t out_size = (size_t)(next_out - output);
-            if (out_size) {
-                php_stream_write(self->stream, output, out_size);
+            if (out_size
+                && (size_t) php_stream_write(self->stream, output, out_size)
+                   != out_size) {
+                ret = EOF;
+                break;
             }
         } else {
             php_error_docref(NULL, E_WARNING,
@@ -1111,8 +1114,13 @@ static ssize_t php_brotli_compress_write(php_stream *stream,
                                         &next_out,
                                         0)) {
             size_t out_size = (size_t)(next_out - output);
-            if (out_size) {
-                php_stream_write(self->stream, output, out_size);
+            if (out_size
+                && (size_t) php_stream_write(self->stream, output, out_size)
+                   != out_size) {
+#if PHP_VERSION_ID >= 70400
+                efree(output);
+                return -1;
+#endif
             }
         } else {
             php_error_docref(NULL, E_WARNING, "brotli: failed to compression");
