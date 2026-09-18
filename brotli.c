@@ -917,9 +917,13 @@ static int php_brotli_decompress_close(php_stream *stream,
         return EOF;
     }
 
+    int ret = 0;
+
     if (close_handle) {
         if (self->stream) {
-            php_stream_close(self->stream);
+            if (php_stream_close(self->stream)) {
+                ret = EOF;
+            }
             self->stream = NULL;
         }
     }
@@ -934,7 +938,7 @@ static int php_brotli_decompress_close(php_stream *stream,
 
     stream->abstract = NULL;
 
-    return EOF;
+    return ret;
 }
 
 #if PHP_VERSION_ID < 70400
@@ -1028,6 +1032,7 @@ static int php_brotli_compress_close(php_stream *stream,
         return EOF;
     }
 
+    int ret = 0;
     const uint8_t *next_in = NULL;
     size_t available_in = 0;
 
@@ -1050,6 +1055,8 @@ static int php_brotli_compress_close(php_stream *stream,
         } else {
             php_error_docref(NULL, E_WARNING,
                              "brotli: failed to clean up compression");
+            ret = EOF;
+            break;
         }
     }
 
@@ -1057,7 +1064,9 @@ static int php_brotli_compress_close(php_stream *stream,
 
     if (close_handle) {
         if (self->stream) {
-            php_stream_close(self->stream);
+            if (php_stream_close(self->stream)) {
+                ret = EOF;
+            }
             self->stream = NULL;
         }
     }
@@ -1067,7 +1076,7 @@ static int php_brotli_compress_close(php_stream *stream,
     efree(self);
     stream->abstract = NULL;
 
-    return EOF;
+    return ret;
 }
 
 #if PHP_VERSION_ID < 70400
